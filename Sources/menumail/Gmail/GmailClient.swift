@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Where an account's inbox comes from: Gmail, or sample data in debug previews.
 protocol MailService: AnyObject {
@@ -14,6 +15,8 @@ final class GmailClient: MailService {
     let auth: GoogleOAuth
     private let baseURL = URL(string: "https://gmail.googleapis.com/gmail/v1/users/me/")!
     private var cache: [String: MailMessage] = [:]
+    /// Messages Gmail returned in a shape MenuMail can't read; skipped instead of re-fetched.
+    private var unreadable: Set<String> = []
     private static let maxConcurrentFetches = 5
     private static let maxRateLimitRetries = 3
 
@@ -23,7 +26,7 @@ final class GmailClient: MailService {
 
     func emailAddress() async throws -> String {
         let data = try await get("profile")
-        return try JSONDecoder().decode(Profile.self, from: data).emailAddress
+        return try decode(Profile.self, from: data, request: "profile").emailAddress
     }
 
     func fetchInbox(limit: Int) async throws -> InboxPage {
@@ -33,19 +36,20 @@ final class GmailClient: MailService {
 
         // Gmail limits concurrent requests per user, so fetch a few at a time. Messages fetched
         // before a failure stay cached, so the next refresh picks up where this one stopped.
-        var missing = inbox.ids.filter { cache[$0] == nil }[...]
-        try await withThrowingTaskGroup(of: MailMessage.self) { group in
+        var missing = inbox.ids.filter { cache[$0] == nil && !unreadable.contains($0) }[...]
+        try await withThrowingTaskGroup(of: (String, MailMessage?).self) { group in
             for _ in 0..<Self.maxConcurrentFetches {
                 guard let id = missing.popFirst() else { break }
-                group.addTask { try await self.fetchMessage(id) }
+                group.addTask { (id, try await self.fetchMessage(id)) }
             }
-            for try await message in group {
-                cache[message.id] = message
-                if let id = missing.popFirst() { group.addTask { try await self.fetchMessage(id) } }
+            for try await (id, message) in group {
+                if let message { cache[id] = message } else { unreadable.insert(id) }
+                if let id = missing.popFirst() { group.addTask { (id, try await self.fetchMessage(id)) } }
             }
         }
-        // Drop messages that left the inbox so the cache doesn't grow forever.
+        // Drop messages that left the inbox so the caches don't grow forever.
         cache = cache.filter { inbox.ids.contains($0.key) }
+        unreadable.formIntersection(inbox.ids)
 
         let messages = inbox.ids.compactMap { id -> MailMessage? in
             guard var message = cache[id] else { return nil }
@@ -61,19 +65,46 @@ final class GmailClient: MailService {
         var query = labels.map { URLQueryItem(name: "labelIds", value: $0) }
         query.append(.init(name: "maxResults", value: String(limit)))
         query.append(.init(name: "fields", value: "messages/id,nextPageToken"))
-        let page = try JSONDecoder().decode(MessageList.self, from: try await get("messages", query: query))
+        let page = try decode(MessageList.self, from: try await get("messages", query: query), request: "messages.list")
         return ((page.messages ?? []).map(\.id), page.nextPageToken != nil)
     }
 
-    private func fetchMessage(_ id: String) async throws -> MailMessage {
+    /// One message's metadata, or nil if it can't be shown: it was deleted after the inbox was
+    /// listed (404), or Gmail returned something MenuMail can't read. Either way the rest of the
+    /// inbox still loads.
+    private func fetchMessage(_ id: String) async throws -> MailMessage? {
         let query: [URLQueryItem] = [
             .init(name: "format", value: "metadata"),
             .init(name: "metadataHeaders", value: "From"),
             .init(name: "metadataHeaders", value: "Subject"),
             .init(name: "fields", value: "id,threadId,labelIds,snippet,internalDate,payload/headers"),
         ]
-        return try JSONDecoder().decode(APIMessage.self, from: try await get("messages/\(id)", query: query)).message
+        do {
+            let data = try await get("messages/\(id)", query: query)
+            return try decode(APIMessage.self, from: data, request: "messages.get").message
+        } catch MailError.http(404, _) {
+            Self.log.info("Message \(id, privacy: .public) disappeared before it could be fetched")
+            return nil
+        } catch MailError.unexpectedResponse {
+            return nil  // Already logged by decode(_:from:request:).
+        }
     }
+
+    private static let log = Logger(subsystem: "dev.menumail.menumail", category: "gmail")
+
+    /// Decodes a Gmail response, turning a decoding failure into an error that says which request
+    /// and field were wrong, and logging the start of the response for diagnosis.
+    private func decode<T: Decodable>(_ type: T.Type, from data: Data, request: String) throws -> T {
+        do {
+            return try JSONDecoder().decode(type, from: data)
+        } catch let error as DecodingError {
+            let detail = error.summary
+            let body = String(decoding: data.prefix(400), as: UTF8.self)
+            Self.log.error("Unreadable \(request, privacy: .public) response (\(detail, privacy: .public)): \(body, privacy: .private)")
+            throw MailError.unexpectedResponse("\(request): \(detail)")
+        }
+    }
+
 
     private func get(_ path: String, query: [URLQueryItem] = [], attempt: Int = 0, reauthorized: Bool = false) async throws -> Data {
         var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)!
@@ -111,7 +142,7 @@ nonisolated private struct APIMessage: Decodable {
     struct Header: Decodable { var name: String; var value: String }
 
     var id: String
-    var threadId: String
+    var threadId: String?
     var labelIds: [String]?
     var snippet: String?
     var internalDate: String?
@@ -123,7 +154,7 @@ nonisolated private struct APIMessage: Decodable {
         }
         let from = AddressParser.parse(header("From"))
         let millis = internalDate.flatMap(Double.init) ?? 0
-        return MailMessage(id: id, threadID: threadId, senderName: from.name, senderAddress: from.address,
+        return MailMessage(id: id, threadID: threadId ?? id, senderName: from.name, senderAddress: from.address,
                            subject: header("Subject"), snippet: HTMLEntities.decode(snippet ?? ""),
                            date: Date(timeIntervalSince1970: millis / 1000),
                            isUnread: labelIds?.contains("UNREAD") ?? false)

@@ -56,6 +56,20 @@ struct ParsingTests {
         #expect(!MailError.http(500, "").isRateLimit)
     }
 
+    @Test func summarizesDecodingErrors() throws {
+        struct Message: Decodable { struct Header: Decodable { var name: String; var value: String }; var id: String; var headers: [Header] }
+        func summary(_ json: String) -> String? {
+            do { _ = try JSONDecoder().decode(Message.self, from: Data(json.utf8)); return nil }
+            catch let error as DecodingError { return error.summary }
+            catch { return "other" }
+        }
+        #expect(summary(#"{"headers":[]}"#) == "missing id")
+        #expect(summary(#"{"id":"1","headers":[{"name":"From"}]}"#) == "missing headers.0.value")
+        #expect(summary(#"{"id":1,"headers":[]}"#) == "unexpected value at id")
+        #expect(summary("<html>") == "not JSON")
+        #expect(MailError.unexpectedResponse("messages.get: missing id").errorDescription?.contains("messages.get: missing id") == true)
+    }
+
     @Test func defaultNicknames() {
         let personal = Account(email: "a@gmail.com", nickname: "Personal", clientID: "", lastSeen: .now)
         #expect(Account.defaultNickname(for: "b@gmail.com", existing: [personal]) == "Personal 2")

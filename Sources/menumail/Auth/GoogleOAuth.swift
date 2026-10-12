@@ -143,7 +143,12 @@ final class GoogleOAuth {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = HTTP.formBody(fields)
-        return try JSONDecoder().decode(TokenResponse.self, from: try await HTTP.data(for: request))
+        let data = try await HTTP.data(for: request)
+        do {
+            return try JSONDecoder().decode(TokenResponse.self, from: data)
+        } catch let error as DecodingError {
+            throw MailError.unexpectedResponse("token: \(error.summary)")
+        }
     }
 
     private static func randomURLSafeString(byteCount: Int) -> String {

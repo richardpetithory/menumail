@@ -20,9 +20,31 @@ enum HTTP {
     }
 }
 
+extension DecodingError {
+    /// "missing payload.headers.0.value", without Swift's internal wording.
+    nonisolated var summary: String {
+        func path(_ context: Context) -> String {
+            context.codingPath.map { $0.intValue.map(String.init) ?? $0.stringValue }.joined(separator: ".")
+        }
+        switch self {
+        case .keyNotFound(let key, let context):
+            let parent = path(context)
+            return "missing \(parent.isEmpty ? "" : parent + ".")\(key.stringValue)"
+        case .typeMismatch(_, let context), .valueNotFound(_, let context):
+            return "unexpected value at \(path(context).isEmpty ? "top level" : path(context))"
+        case .dataCorrupted(let context):
+            return path(context).isEmpty ? "not JSON" : "bad data at \(path(context))"
+        @unknown default:
+            return "unreadable"
+        }
+    }
+}
+
 nonisolated enum MailError: LocalizedError {
     case http(Int, String)
     case auth(String)
+    /// Gmail answered, but not in the shape MenuMail expects; the text names the request and field.
+    case unexpectedResponse(String)
     case notSignedIn
     case cancelled
 
@@ -32,6 +54,7 @@ nonisolated enum MailError: LocalizedError {
             if let message = Self.googleErrorMessage(body) { return "Gmail error \(status): \(message)" }
             return "HTTP \(status): \(body)"
         case .auth(let message): return message
+        case .unexpectedResponse(let detail): return "Gmail sent a response MenuMail couldn't read (\(detail)). Try refreshing."
         case .notSignedIn: return "This account is signed out. Reconnect it in Settings."
         case .cancelled: return "Sign-in was canceled."
         }
