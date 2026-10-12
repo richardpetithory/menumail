@@ -4,29 +4,32 @@ import AppKit
 /// AppIcon.icns at build time via `--render-iconset`) and the logo PNGs share one design.
 ///
 /// The design: a white envelope hanging from a menu bar strip like a popover, on a blue tile,
-/// with a red new-mail dot. The menu bar glyph is the same idea as a monochrome template image.
+/// with a red new-mail dot. The menu bar glyph is a small blue version with a red count pill.
 enum MenuMailIcon {
-    /// The menu bar item: the glyph, followed by the new-mail count when there is one. A
-    /// template image, so macOS tints it to match light and dark menu bars.
+    /// The menu bar item: the glyph, plus a red pill with the new-mail count when there is one.
     static func menuBar(count: String?) -> NSImage {
         let glyphSize: CGFloat = 18
-        let text = count.map {
-            NSAttributedString(string: $0, attributes: [.font: NSFont.menuBarFont(ofSize: 0), .foregroundColor: NSColor.black])
-        }
-        let textWidth = text.map { ceil($0.size().width) + 4 } ?? 0
-        let size = NSSize(width: glyphSize + textWidth, height: glyphSize)
+        let font = NSFont.systemFont(ofSize: 10.5, weight: .bold)
+        let text = count.map { NSAttributedString(string: $0, attributes: [.font: font, .foregroundColor: NSColor.white]) }
+        let pillHeight: CGFloat = 14
+        let pillWidth = text.map { max(pillHeight, ceil($0.size().width) + 8) } ?? 0
+        let gap: CGFloat = text == nil ? 0 : 3
+        let size = NSSize(width: glyphSize + gap + pillWidth, height: glyphSize)
 
         let image = NSImage(size: size, flipped: true) { _ in
             NSGraphicsContext.saveGraphicsState()
             drawMenuBarGlyph(in: NSRect(x: 0, y: 0, width: glyphSize, height: glyphSize))
             NSGraphicsContext.restoreGraphicsState()
             if let text {
+                let pill = NSRect(x: glyphSize + gap, y: (glyphSize - pillHeight) / 2, width: pillWidth, height: pillHeight)
+                dot.setFill()
+                NSBezierPath(roundedRect: pill, xRadius: pillHeight / 2, yRadius: pillHeight / 2).fill()
                 let textSize = text.size()
-                text.draw(at: NSPoint(x: glyphSize + 3, y: (glyphSize - textSize.height) / 2))
+                text.draw(at: NSPoint(x: pill.midX - textSize.width / 2, y: pill.midY - textSize.height / 2))
             }
             return true
         }
-        image.isTemplate = true
+        image.isTemplate = false  // Keep the colors instead of tinting to the menu bar style.
         image.accessibilityDescription = count.map { "MenuMail, \($0) new" } ?? "MenuMail"
         return image
     }
@@ -83,16 +86,16 @@ enum MenuMailIcon {
     nonisolated private static let flap = NSColor(srgbRed: 0.184, green: 0.357, blue: 0.910, alpha: 1)  // #2F5BE8
     nonisolated private static let dot = NSColor(srgbRed: 1.000, green: 0.353, blue: 0.306, alpha: 1)  // #FF5A4E
 
-    /// 24×24 grid: a menu bar strip above an envelope outline.
+    /// 24×24 grid: a blue menu bar strip above a blue envelope with a white flap. Blue reads on
+    /// both light and dark menu bars.
     nonisolated private static func drawMenuBarGlyph(in rect: NSRect) {
         scale(to: rect, grid: 24)
-        NSColor.black.setFill()
-        NSColor.black.setStroke()
+        tileTop.setFill()
         NSBezierPath(roundedRect: NSRect(x: 3, y: 2.5, width: 18, height: 2.6), xRadius: 1.3, yRadius: 1.3).fill()
-        let body = NSBezierPath(roundedRect: NSRect(x: 4, y: 8, width: 16, height: 12), xRadius: 2.5, yRadius: 2.5)
-        body.lineWidth = 1.8
-        body.stroke()
-        stroke([NSPoint(x: 5.5, y: 9.5), NSPoint(x: 12, y: 14.5), NSPoint(x: 18.5, y: 9.5)], width: 1.8)
+        let body = NSBezierPath(roundedRect: NSRect(x: 3.5, y: 7.5, width: 17, height: 13), xRadius: 2.8, yRadius: 2.8)
+        NSGradient(starting: tileTop, ending: tileBottom)?.draw(in: body, angle: 90)
+        NSColor.white.setStroke()
+        stroke([NSPoint(x: 6, y: 10), NSPoint(x: 12, y: 14.5), NSPoint(x: 18, y: 10)], width: 1.8)
     }
 
     /// 1024×1024 grid on Apple's icon template (824pt tile inset by 100).
