@@ -7,8 +7,8 @@ A macOS menu bar app that shows your Gmail inboxes, one tab per account.
 - **New-mail counts per account.** Each account counts the inbox messages that arrived since
   you last looked at its tab. Opening the popup clears the count for the tab it shows; the
   messages that were new stay marked until you close it.
-- **Per-desktop selection.** Each desktop (Mission Control Space) remembers the tab you picked
-  on it, e.g. Personal on Desktop 1 and Work on Desktop 2.
+- **Per-Space selection.** Each Space (Mission Control's Desktop 1, Desktop 2, …) remembers the
+  tab you picked on it, e.g. Personal on Desktop 1 and Work on Desktop 2.
 - **Browser profiles.** Each account can open its links (and its sign-in) in a specific
   Chromium browser profile (Brave, Chrome, Edge, Vivaldi, …), e.g. Brave's Work profile for
   the work account.
@@ -59,7 +59,7 @@ Sources/menumail/
   App/       MenuBarExtra entry point (icon + count)
   Auth/      OAuth (browser + loopback + PKCE)
   Gmail/     Gmail API client: lists inbox/unread IDs, caches message metadata
-  Model/     Account, MailMessage, MailStore (counts, popup lifecycle, polling, desktops)
+  Model/     Account, MailMessage, MailStore (counts, popup lifecycle, polling, Spaces)
   Support/   Keychain, HTTP, Desktops (private CGS Spaces API), Browsers (Chromium profiles)
   Views/     Popup screens and the code-drawn icons
 ```
@@ -68,8 +68,8 @@ Sources/menumail/
   is two list calls plus a metadata fetch for messages not seen before.
 - Refresh tokens and client secrets are stored in the Keychain; everything else is in
   UserDefaults (`dev.menumail.menumail`).
-- Desktop detection uses private CoreGraphics calls (`CGSGetActiveSpace`,
-  `CGSCopyManagedDisplaySpaces`), looked up at runtime. If they go away, all desktops share one
+- Space detection uses private CoreGraphics calls (`CGSGetActiveSpace`,
+  `CGSCopyManagedDisplaySpaces`), looked up at runtime. If they go away, all Spaces share one
   selection.
 
 ## Releases

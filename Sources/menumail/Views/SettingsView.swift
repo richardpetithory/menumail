@@ -79,7 +79,7 @@ private struct AccountsSettings: View {
                 if let pendingRemoval { store.remove(pendingRemoval) }
             }
         } message: {
-            Text("MenuMail signs out of this account and forgets which desktops show it.")
+            Text("MenuMail signs out of this account and forgets which Spaces show it.")
         }
     }
 
@@ -258,15 +258,15 @@ private struct GeneralSettings: View {
 
             Section {
                 if let desktop = store.currentDesktop {
-                    LabeledContent("Current desktop", value: desktop.label)
+                    LabeledContent("Current Space", value: desktop.label)
                     LabeledContent("Shows account", value: store.desktopAccount.map { "\($0.nickname) (\($0.email))" } ?? "None")
                 } else {
-                    Text("MenuMail can't tell desktops apart on this Mac, so they all share one selection.")
+                    Text("MenuMail can't tell Spaces apart on this Mac, so they all share one selection.")
                 }
             } header: {
-                Text("Desktops")
+                Text("Spaces")
             } footer: {
-                Text("Each desktop remembers the account tab you last chose on it. Desktops you haven't chosen on show the most recently chosen account.")
+                Text("Each Space (Desktop 1, Desktop 2, … in Mission Control) remembers the account tab you last chose on it. Spaces where you haven't chosen one show the most recently chosen account.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

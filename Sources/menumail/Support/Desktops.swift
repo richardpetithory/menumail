@@ -16,8 +16,8 @@ enum Desktops {
         var isFullScreen: Bool
 
         var label: String {
-            if isFullScreen { return "Full-screen space" }
-            return number.map { "Desktop \($0)" } ?? "This desktop"
+            if isFullScreen { return "Full-screen Space" }
+            return number.map { "Desktop \($0)" } ?? "This Space"
         }
     }
 

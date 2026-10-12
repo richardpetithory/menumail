@@ -42,7 +42,7 @@ nonisolated enum MenuBarCountMode: String, Codable, CaseIterable, Identifiable, 
     var label: String {
         switch self {
         case .allAccounts: "All accounts"
-        case .currentDesktop: "This desktop's account"
+        case .currentDesktop: "This Space's account"
         }
     }
 }
