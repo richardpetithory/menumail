@@ -44,3 +44,20 @@ struct LaunchAtLoginToggle: View {
         status = SMAppService.mainApp.status
     }
 }
+
+enum LoginItem {
+    private static let defaultsKey = "didEnableLoginItemByDefault"
+
+    /// Turns on "Open at login" the first time the app runs from an Applications folder; after
+    /// that it's the user's choice. Waiting for an Applications folder avoids registering a copy
+    /// that's about to be moved out of Downloads.
+    static func enableOnFirstLaunch() {
+        let path = Bundle.main.bundleURL.path
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        guard Bundle.main.bundleIdentifier != nil,
+              path.hasPrefix("/Applications/") || path.hasPrefix(home + "/Applications/"),
+              !UserDefaults.standard.bool(forKey: defaultsKey) else { return }
+        UserDefaults.standard.set(true, forKey: defaultsKey)
+        if SMAppService.mainApp.status != .enabled { try? SMAppService.mainApp.register() }
+    }
+}

@@ -21,19 +21,10 @@ struct RootView: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 AccountTabs()
-                Menu {
-                    Button("Settings…") { showSettings() }
-                        .keyboardShortcut(",")
-                    Divider()
-                    Button("Quit MenuMail") { NSApp.terminate(nil) }
-                        .keyboardShortcut("q")
-                } label: {
-                    Image(systemName: "gearshape")
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help("Settings")
+                Button(action: showSettings) { Image(systemName: "gearshape") }
+                    .buttonStyle(.borderless)
+                    .keyboardShortcut(",")
+                    .help("Settings")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)

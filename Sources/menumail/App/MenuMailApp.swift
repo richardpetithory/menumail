@@ -12,6 +12,7 @@ struct MenuMailApp: App {
         _store = State(initialValue: MailStore())
         // Menu bar only: no Dock icon (also set via LSUIElement when bundled).
         NSApplication.shared.setActivationPolicy(.accessory)
+        if !Self.isDebugToolRun { LoginItem.enableOnFirstLaunch() }
 
         #if DEBUG
         DebugTools.handleLaunchArguments()

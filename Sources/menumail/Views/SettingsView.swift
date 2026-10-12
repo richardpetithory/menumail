@@ -5,15 +5,28 @@ struct SettingsView: View {
     @AppStorage("settingsTab") private var tab = SettingsTab.accounts
 
     var body: some View {
-        TabView(selection: $tab) {
-            AccountsSettings()
-                .tabItem { Label("Accounts", systemImage: "at") }
-                .tag(SettingsTab.accounts)
-            GeneralSettings()
-                .tabItem { Label("General", systemImage: "gearshape") }
-                .tag(SettingsTab.general)
+        VStack(spacing: 0) {
+            TabView(selection: $tab) {
+                AccountsSettings()
+                    .tabItem { Label("Accounts", systemImage: "at") }
+                    .tag(SettingsTab.accounts)
+                GeneralSettings()
+                    .tabItem { Label("General", systemImage: "gearshape") }
+                    .tag(SettingsTab.general)
+            }
+            Divider()
+            HStack {
+                Text("MenuMail \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Quit MenuMail") { NSApp.terminate(nil) }
+                    .keyboardShortcut("q")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .frame(width: 640, height: 420)
+        .frame(width: 640, height: 460)
     }
 }
 
