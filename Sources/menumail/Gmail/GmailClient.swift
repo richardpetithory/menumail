@@ -65,7 +65,11 @@ final class GmailClient: MailService {
         var query = labels.map { URLQueryItem(name: "labelIds", value: $0) }
         query.append(.init(name: "maxResults", value: String(limit)))
         query.append(.init(name: "fields", value: "messages/id,nextPageToken"))
-        let page = try decode(MessageList.self, from: try await get("messages", query: query), request: "messages.list")
+        let data = try await get("messages", query: query)
+        // With a `fields` mask and no matches (e.g. no unread mail), Gmail can answer 200 with an
+        // empty body instead of `{}`.
+        if data.allSatisfy({ $0 == 0x20 || $0 == 0x0A || $0 == 0x0D || $0 == 0x09 }) { return ([], false) }
+        let page = try decode(MessageList.self, from: data, request: "messages.list \(labels.joined(separator: "+"))")
         return ((page.messages ?? []).map(\.id), page.nextPageToken != nil)
     }
 
@@ -100,7 +104,7 @@ final class GmailClient: MailService {
         } catch let error as DecodingError {
             let detail = error.summary
             let body = String(decoding: data.prefix(400), as: UTF8.self)
-            Self.log.error("Unreadable \(request, privacy: .public) response (\(detail, privacy: .public)): \(body, privacy: .private)")
+            Self.log.error("Unreadable \(request, privacy: .public) response (\(detail, privacy: .public), \(data.count, privacy: .public) bytes): \(body, privacy: .private)")
             throw MailError.unexpectedResponse("\(request): \(detail)")
         }
     }
