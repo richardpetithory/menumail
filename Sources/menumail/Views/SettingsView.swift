@@ -226,6 +226,12 @@ private struct GeneralSettings: View {
         @Bindable var store = store
         Form {
             Section {
+                LaunchAtLoginToggle()
+            } header: {
+                Text("Startup")
+            }
+
+            Section {
                 Picker("Show new-mail count for", selection: $store.menuBarCountMode) {
                     ForEach(MenuBarCountMode.allCases) { Text($0.label).tag($0) }
                 }
