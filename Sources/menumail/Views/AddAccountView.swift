@@ -31,7 +31,7 @@ struct AddAccountView: View {
                     if !profiles.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             BrowserPicker(title: "Browser profile", selection: $browser, profiles: profiles)
-                            Text("\(needsClient ? "Setup pages and Google sign-in" : "Google sign-in") open here, and so will this account's messages. Pick the profile that's signed in to the account you're adding.")
+                            Text("\(needsClient ? "Setup pages and Google sign-in open" : "Google sign-in opens") here, and so will this account's messages. Pick the profile that's signed in to the account you're adding.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
