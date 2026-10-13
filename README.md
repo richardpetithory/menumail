@@ -4,6 +4,10 @@
 
 A macOS menu bar app that shows your Gmail inboxes, one tab per account.
 
+<img src="Assets/screenshots/menubar-icon.png" width="62" alt="MenuMail's menu bar icon with a new-mail count of 4">
+
+<img src="Assets/screenshots/menubar-popup.png" width="490" alt="MenuMail's popup open under the menu bar, showing the Personal inbox">
+
 - **New-mail counts per account.** Each account counts the inbox messages that arrived since
   you last looked at its tab. Opening the popup clears the count for the tab it shows; the
   messages that were new stay marked until you close it.
@@ -13,6 +17,20 @@ A macOS menu bar app that shows your Gmail inboxes, one tab per account.
   Chromium browser profile (Brave, Chrome, Edge, Vivaldi, …), e.g. Brave's Work profile for
   the work account.
 - **Read-only.** MenuMail asks only for `gmail.readonly`. Clicking a message opens it in Gmail.
+
+### Settings
+
+<p>
+  <img src="Assets/screenshots/settings-accounts.png" width="420" alt="MenuMail Settings: Accounts">
+  <img src="Assets/screenshots/settings-general.png" width="420" alt="MenuMail Settings: General">
+</p>
+
+### Signing in
+
+<p>
+  <img src="Assets/screenshots/welcome.png" width="320" alt="MenuMail's welcome screen">
+  <img src="Assets/screenshots/add-account.png" width="384" alt="Adding another Gmail account">
+</p>
 
 ## Build & run
 
